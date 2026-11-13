@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>3DS Theme Studio</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='2' width='26' height='13' rx='3' fill='%23e2384d'/%3E%3Crect x='6' y='17' width='20' height='13' rx='3' fill='%234f8cff'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <h1>3DS Theme Studio</h1>
+    </div>
+    <p class="tagline">Make a custom Home Menu theme from your own pictures, colours, music and sounds.</p>
+  </header>
+
+  <main class="layout">
+    <section class="editor" aria-label="Theme editor">
+
+      <!-- 1. Details -->
+      <article class="step" id="step-details">
+        <h2><span class="num">1</span> Details</h2>
+        <div class="grid-2">
+          <label>Theme name
+            <input id="title" maxlength="64" placeholder="My Theme" autocomplete="off">
+          </label>
+          <label>Author
+            <input id="author" maxlength="64" placeholder="Your name" autocomplete="off">
+          </label>
+        </div>
+        <label><span class="label-text">Description <span class="hint">(optional)</span></span>
+          <input id="description" maxlength="128" placeholder="Shown in theme managers" autocomplete="off">
+        </label>
+      </article>
+
+      <!-- 2. Top screen -->
+      <article class="step" id="step-top">
+        <h2><span class="num">2</span> Top screen <span class="dims" id="top-dims">400 × 240</span></h2>
+        <label class="inline frame-pick">Background
+          <select id="top-frame">
+            <option value="single">Still</option>
+            <option value="slowscroll">Scrolls slowly</option>
+            <option value="fastscroll">Scrolls quickly</option>
+          </select>
+        </label>
+        <div class="cropper" data-slot="top"></div>
+      </article>
+
+      <!-- 3. Bottom screen -->
+      <article class="step" id="step-bottom">
+        <h2><span class="num">3</span> Bottom screen <span class="dims" id="bottom-dims">320 × 240</span></h2>
+        <label class="inline frame-pick">Background
+          <select id="bottom-frame">
+            <option value="single">Still</option>
+            <option value="pagescroll">Moves page by page</option>
+            <option value="slowscroll">Scrolls slowly</option>
+            <option value="fastscroll">Scrolls quickly</option>
+            <option value="bouncescroll">Bounces</option>
+          </select>
+        </label>
+        <div class="cropper" data-slot="bottom"></div>
+      </article>
+
+      <!-- 4. Icon -->
+      <article class="step" id="step-icon">
+        <h2><span class="num">4</span> Theme icon <span class="dims">48 × 48</span></h2>
+        <p class="hint">Shown in theme managers. It starts as a crop of your top screen; upload a different image if you like.</p>
+        <div class="cropper icon-cropper" data-slot="icon"></div>
+      </article>
+
+      <!-- 5. Music -->
+      <article class="step" id="step-music">
+        <h2><span class="num">5</span> Music <span class="hint">(optional)</span></h2>
+        <div id="music-source">
+          <label class="drop" id="music-drop">
+            <input type="file" id="music-file" accept="audio/*,video/*" hidden>
+            <span class="drop-text"><strong>Choose a song</strong> or drop it here: MP3, WAV, OGG, M4A…</span>
+          </label>
+          <div class="or"><span>or</span></div>
+          <button type="button" class="secondary wide" id="record-btn">● Record from another tab</button>
+          <p class="hint" id="record-hint">Grabs whatever is playing in another Chrome tab (YouTube, Spotify Web, SoundCloud…). Silence at the start and end is trimmed automatically.</p>
+        </div>
+
+        <div id="recording-ui" class="recording" hidden>
+          <div class="rec-head">
+            <span class="rec-dot" aria-hidden="true"></span>
+            <strong>Recording</strong>
+            <span id="rec-time" class="rec-time">0:00</span>
+          </div>
+          <div class="meter-bar level"><div class="meter-fill" id="rec-level"></div></div>
+          <p class="hint">Play the song in the other tab now, from the start. Click Stop when it’s finished.</p>
+          <button type="button" class="primary" id="rec-stop">■ Stop recording</button>
+        </div>
+
+        <div id="music-ui" hidden>
+          <div class="music-head">
+            <span id="music-name" class="file-name"></span>
+            <button type="button" class="ghost" id="music-remove">Remove</button>
+          </div>
+          <audio id="music-player" controls preload="metadata"></audio>
+          <div class="grid-3">
+            <label>Start (s)
+              <span class="with-btn">
+                <input type="number" id="music-start" min="0" step="0.1" value="0">
+                <button type="button" class="ghost tiny" id="set-start" title="Use the player's current position">⤓ now</button>
+              </span>
+            </label>
+            <label>End (s)
+              <span class="with-btn">
+                <input type="number" id="music-end" min="0" step="0.1" value="0">
+                <button type="button" class="ghost tiny" id="set-end" title="Use the player's current position">⤓ now</button>
+              </span>
+            </label>
+            <label>Fade out (s)
+              <input type="number" id="music-fade" min="0" max="10" step="0.5" value="0">
+            </label>
+          </div>
+          <div class="music-options">
+            <label class="inline check"><input type="checkbox" id="music-mono"> Mono (doubles the max length)</label>
+            <button type="button" class="ghost" id="music-preview">▶ Play clip</button>
+          </div>
+          <div class="meter" aria-live="polite">
+            <div class="meter-bar"><div class="meter-fill" id="meter-fill"></div></div>
+            <p id="meter-text" class="hint"></p>
+          </div>
+          <p class="hint">The song loops on the Home Menu. The 3DS caps theme music at about 3.2 MB, which is roughly 90 seconds in stereo or 3 minutes in mono.</p>
+        </div>
+        <p id="music-error" class="status error" role="alert"></p>
+      </article>
+
+      <!-- 6. Colours -->
+      <article class="step" id="step-colors">
+        <h2><span class="num">6</span> Tiles &amp; colours <span class="hint">(optional)</span></h2>
+        <p class="hint">Recolour the app tiles, cursor, folders, buttons and text. Anything left unticked keeps the standard 3DS look.</p>
+        <div class="color-actions">
+          <button type="button" class="secondary" id="auto-colors">✨ Match my images</button>
+          <button type="button" class="ghost" id="clear-colors">Reset all</button>
+        </div>
+        <div id="color-groups" class="color-groups"></div>
+        <label class="inline check spaced"><input type="checkbox" id="hide-gametext"> Hide the app-name bubble</label>
+      </article>
+
+      <!-- 7. Sound effects -->
+      <article class="step" id="step-sfx">
+        <h2><span class="num">7</span> Sound effects <span class="hint">(optional)</span></h2>
+        <p class="hint">Short sounds for Home Menu actions. Each is trimmed to its first 3 seconds and converted to mono. All of them together must fit in about 183 KB, roughly 10 seconds in total.</p>
+        <div id="sfx-list" class="sfx-list"></div>
+        <div class="meter">
+          <div class="meter-bar"><div class="meter-fill" id="sfx-fill"></div></div>
+          <p id="sfx-text" class="hint">No sound effects added.</p>
+        </div>
+      </article>
+
+      <!-- 8. Textures -->
+      <article class="step" id="step-textures">
+        <h2><span class="num">8</span> Tile &amp; folder textures <span class="badge">Experimental</span></h2>
+        <p class="hint">Use your own pictures for the app tiles and folder icons. These are full-colour (24-bit) textures. How each one is laid out on the console isn’t well documented, so check the result on your 3DS. Tiles and folders work in pairs: if you only set one, the other uses the same picture.</p>
+        <div class="texture-grid">
+          <div><h3>Large tile <span class="dims">64 × 128</span></h3><div class="cropper texture-cropper" data-slot="filelarge" data-optional></div></div>
+          <div><h3>Small tile <span class="dims">32 × 64</span></h3><div class="cropper texture-cropper" data-slot="filesmall" data-optional></div></div>
+          <div><h3>Folder (open) <span class="dims">128 × 64</span></h3><div class="cropper texture-cropper" data-slot="folderopen" data-optional></div></div>
+          <div><h3>Folder (closed) <span class="dims">128 × 64</span></h3><div class="cropper texture-cropper" data-slot="folderclose" data-optional></div></div>
+        </div>
+      </article>
+
+      <!-- 9. Build -->
+      <article class="step" id="step-build">
+        <h2><span class="num">9</span> Build &amp; install</h2>
+        <ul class="checklist" id="checklist"></ul>
+        <button type="button" class="primary" id="build-btn" disabled>Build theme</button>
+        <p id="build-status" class="status" role="status" aria-live="polite"></p>
+
+        <div id="result" hidden>
+          <div class="result-actions">
+            <button type="button" class="primary" id="save-sd">Save to SD card</button>
+            <a class="button secondary" id="download-link" download>Download .zip</a>
+          </div>
+          <p id="sd-status" class="status" role="status" aria-live="polite"></p>
+          <details class="howto" open>
+            <summary>Applying it on your 3DS</summary>
+            <ol>
+              <li>Put the SD card in your computer and click <strong>Save to SD card</strong>. Pick the SD card’s main folder and the theme goes into <code>/Themes/</code>. Or download the zip and copy it into <code>/Themes/</code> yourself.</li>
+              <li>Put the card back in the 3DS and open <strong>Anemone3DS</strong> (requires custom firmware).</li>
+              <li>Select your theme and apply it <strong>with BGM</strong> if it has music.</li>
+              <li>On the Home Menu, open Theme Settings and make sure theme shuffle is off.</li>
+            </ol>
+          </details>
+        </div>
+      </article>
+    </section>
+
+    <!-- Live preview -->
+    <aside class="preview-pane" aria-label="Live preview">
+      <div class="device">
+        <div class="device-top">
+          <div class="screen top-screen">
+            <canvas id="preview-top" width="412" height="240"></canvas>
+            <div class="hm-overlay hm-top" aria-hidden="true">
+              <div class="hm-topbar"><span class="hm-corner"></span><span>12:00</span><span class="hm-battery"></span><span class="hm-corner"></span></div>
+              <div class="hm-bubble" id="hm-bubble">Game Title</div>
+            </div>
+          </div>
+        </div>
+        <div class="hinge"></div>
+        <div class="device-bottom">
+          <div class="screen bottom-screen">
+            <canvas id="preview-bottom" width="320" height="240"></canvas>
+            <div class="hm-overlay hm-bottom" aria-hidden="true">
+              <div class="hm-bar top"><span class="hm-cbtn"></span><span class="hm-cbtn"></span></div>
+              <div class="hm-middle">
+                <span class="hm-arrow left"></span>
+                <div class="hm-grid"></div>
+                <span class="hm-arrow right"></span>
+              </div>
+              <div class="hm-bar bottom"><span class="hm-open">Open</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="preview-meta">
+        <canvas id="preview-icon" width="48" height="48" aria-label="Theme icon"></canvas>
+        <div>
+          <strong id="preview-title">My Theme</strong>
+          <span id="preview-author">Anonymous</span>
+        </div>
+      </div>
+      <div class="preview-options">
+        <label class="inline check"><input type="checkbox" id="toggle-overlay" checked> Show Home Menu</label>
+        <label class="inline check" title="The 3DS screens show 16-bit colour. Dithering hides the banding this causes in gradients and skies.">
+          <input type="checkbox" id="toggle-dither" checked> Smooth gradients (dither)
+        </label>
+      </div>
+      <p class="hint preview-note">The preview shows the exact pixels and 16-bit colours the 3DS will display. The Home Menu overlay is only an approximation.</p>
+    </aside>
+  </main>
+
+  <template id="cropper-template">
+    <label class="drop">
+      <input type="file" accept="image/*" hidden>
+      <span class="drop-text"><strong>Choose an image</strong> or drop it here</span>
+    </label>
+    <div class="crop-ui" hidden>
+      <canvas class="crop-canvas"></canvas>
+      <div class="crop-controls">
+        <label class="inline">Zoom <input type="range" class="zoom" min="0" max="1000" value="0"></label>
+        <label class="inline">Fill <input type="color" class="bg" value="#000000" title="Colour behind the image when zoomed out"></label>
+        <span class="spacer"></span>
+        <button type="button" class="ghost reset">Reset</button>
+        <button type="button" class="ghost replace">Replace</button>
+        <button type="button" class="ghost remove" hidden>Remove</button>
+      </div>
+      <p class="hint quality"></p>
+    </div>
+  </template>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
