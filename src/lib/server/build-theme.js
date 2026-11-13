@@ -1,34 +1,27 @@
-// 3DS Theme Studio — builds Home Menu theme zips from browser uploads.
-//
-// The browser does all image cropping and RGB565 quantization and sends
-// finished PNGs at the exact sizes kame-tools expects. The server converts
-// audio (ffmpeg -> rstmcpp) and packs everything with kame-tools.
-
-const express = require("express");
-const multer = require("multer");
-const { execFile } = require("node:child_process");
-const { promisify } = require("node:util");
-const fs = require("node:fs/promises");
-const os = require("node:os");
-const path = require("node:path");
+// Server-side theme builder: converts audio (ffmpeg -> rstmcpp) and packs
+// everything with kame-tools. Images arrive already cropped and quantized.
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 
 const run = promisify(execFile);
 
-const PORT = Number(process.env.PORT) || 4300;
-const BIN = path.join(__dirname, "bin");
+const BIN = path.join(process.cwd(), "bin");
 const KAME = process.env.KAME_TOOLS || path.join(BIN, "kame-tools");
 const RSTM = process.env.RSTMCPP || path.join(BIN, "rstmcpp");
 
-const SAMPLE_RATE = 32728;       // 3DS native rate
-const MAX_BGM_BYTES = 3371008;   // Home Menu refuses larger BGMs
-const MAX_SFX_CHUNK = 0x2dc00;   // kame-tools' limit for all SFX together
-const MAX_SFX_SECONDS = 3;
-const MAX_UPLOAD = 80 * 1024 * 1024;
+export const SAMPLE_RATE = 32728;       // 3DS native rate
+export const MAX_BGM_BYTES = 3371008;   // Home Menu refuses larger BGMs
+export const MAX_SFX_CHUNK = 0x2dc00;   // kame-tools' limit for all SFX together
+export const MAX_SFX_SECONDS = 3;
+export const MAX_UPLOAD = 80 * 1024 * 1024;
 
 const TOP_FRAMES = ["single", "slowscroll", "fastscroll"];
 const BOTTOM_FRAMES = ["single", "slowscroll", "fastscroll", "pagescroll", "bouncescroll"];
 const SFX_SLOTS = ["cursor", "launch", "folder", "close", "frame0", "frame1", "frame2", "openlid"];
-const OPTIONAL_TEXTURES = { folderopen: "folderopen", folderclose: "folderclose", filelarge: "filelarge", filesmall: "filesmall" };
+const OPTIONAL_TEXTURES = ["folderopen", "folderclose", "filelarge", "filesmall"];
 
 // Colour keys kame-tools understands: group -> allowed fields.
 const COLOR_FIELDS = {
@@ -47,18 +40,7 @@ const COLOR_FIELDS = {
   demotextcolor: ["main", "textmain"],
 };
 
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: MAX_UPLOAD, files: 20, fieldSize: 64 * 1024 },
-});
-
-const fields = upload.fields([
-  ...["top", "bottom", "icon", "smallicon", "preview", "music", ...Object.keys(OPTIONAL_TEXTURES)]
-    .map((name) => ({ name, maxCount: 1 })),
-  ...SFX_SLOTS.map((slot) => ({ name: `sfx_${slot}`, maxCount: 1 })),
-]);
-
-class UserError extends Error {}
+export class UserError extends Error {}
 
 // Values go into an INI-style config: strip anything that could break a line
 // or start a comment/section, and cap to SMDH field lengths.
@@ -78,13 +60,20 @@ function num(value, fallback) {
 
 const oneOf = (value, allowed, fallback) => (allowed.includes(value) ? value : fallback);
 const mb = (b) => (b / 1048576).toFixed(2);
-
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
 
+const isFile = (v) => v && typeof v === "object" && typeof v.arrayBuffer === "function";
+
+async function fileBuffer(file) {
+  if (file.size > MAX_UPLOAD) throw new UserError(`${file.name || "A file"} is too large.`);
+  return Buffer.from(await file.arrayBuffer());
+}
+
 async function savePng(file, dest, label) {
-  if (!file) return false;
-  if (!file.buffer.subarray(0, 4).equals(PNG_MAGIC)) throw new UserError(`${label} must be a PNG`);
-  await fs.writeFile(dest, file.buffer);
+  if (!isFile(file)) return false;
+  const buf = await fileBuffer(file);
+  if (!buf.subarray(0, 4).equals(PNG_MAGIC)) throw new UserError(`${label} must be a PNG`);
+  await fs.writeFile(dest, buf);
   return true;
 }
 
@@ -92,7 +81,7 @@ function parseColors(raw) {
   if (!raw) return [];
   let obj;
   try {
-    obj = JSON.parse(raw);
+    obj = JSON.parse(String(raw));
   } catch {
     throw new UserError("Colour settings were malformed.");
   }
@@ -123,18 +112,18 @@ async function toWav(src, wav, { start = 0, end = 0, channels, fade = 0, maxSeco
   await run("ffmpeg", args, { timeout: 120_000 });
 }
 
-async function buildMusic(file, dir, opts) {
+async function buildMusic(file, dir, form) {
   const src = path.join(dir, "music-src");
   const wav = path.join(dir, "bgm.wav");
   const bcstm = path.join(dir, "bgm.bcstm");
-  await fs.writeFile(src, file.buffer);
+  await fs.writeFile(src, await fileBuffer(file));
 
   try {
     await toWav(src, wav, {
-      start: Math.max(0, num(opts.start, 0)),
-      end: num(opts.end, 0),
-      channels: opts.mono === "true" ? 1 : 2,
-      fade: Math.min(Math.max(0, num(opts.fade, 0)), 10),
+      start: Math.max(0, num(form.get("start"), 0)),
+      end: num(form.get("end"), 0),
+      channels: form.get("mono") === "true" ? 1 : 2,
+      fade: Math.min(Math.max(0, num(form.get("fade"), 0)), 10),
     });
   } catch {
     throw new UserError("Couldn't read that audio file. Try an MP3, WAV, OGG or M4A.");
@@ -152,19 +141,19 @@ async function buildMusic(file, dir, opts) {
 }
 
 /** Convert each uploaded SFX to a mono .bcwav; returns [slot, path] pairs. */
-async function buildSfx(files, dir) {
+async function buildSfx(form, dir) {
   const out = [];
   let chunk = 8 + 11 * 4; // header + extData, as counted by kame-tools
   for (const slot of SFX_SLOTS) {
-    const file = files[`sfx_${slot}`]?.[0];
-    if (!file) {
+    const file = form.get(`sfx_${slot}`);
+    if (!isFile(file)) {
       chunk += 8;
       continue;
     }
     const src = path.join(dir, `sfx-${slot}-src`);
     const wav = path.join(dir, `sfx-${slot}.wav`);
     const bcwav = path.join(dir, `sfx-${slot}.bcwav`);
-    await fs.writeFile(src, file.buffer);
+    await fs.writeFile(src, await fileBuffer(file));
     try {
       await toWav(src, wav, { channels: 1, maxSeconds: MAX_SFX_SECONDS, trimSilence: true });
     } catch {
@@ -183,47 +172,45 @@ async function buildSfx(files, dir) {
   return out;
 }
 
-async function buildTheme(req) {
+/** Build a theme zip from the submitted FormData. */
+export async function buildTheme(form) {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "3ds-theme-"));
   try {
-    const files = req.files ?? {};
-    const one = (name) => files[name]?.[0];
-    const body = req.body ?? {};
-
-    if (!one("top")) throw new UserError("Missing image: top screen");
-    if (!one("bottom")) throw new UserError("Missing image: bottom screen");
-    if (!one("icon")) throw new UserError("Missing image: icon");
-    await savePng(one("top"), path.join(dir, "top.png"), "Top screen");
-    await savePng(one("bottom"), path.join(dir, "bottom.png"), "Bottom screen");
-    await savePng(one("icon"), path.join(dir, "icon.png"), "Icon");
-    const hasSmall = await savePng(one("smallicon"), path.join(dir, "smallicon.png"), "Small icon");
-    const hasPreview = await savePng(one("preview"), path.join(dir, "preview.png"), "Preview");
+    if (!isFile(form.get("top"))) throw new UserError("Missing image: top screen");
+    if (!isFile(form.get("bottom"))) throw new UserError("Missing image: bottom screen");
+    if (!isFile(form.get("icon"))) throw new UserError("Missing image: icon");
+    await savePng(form.get("top"), path.join(dir, "top.png"), "Top screen");
+    await savePng(form.get("bottom"), path.join(dir, "bottom.png"), "Bottom screen");
+    await savePng(form.get("icon"), path.join(dir, "icon.png"), "Icon");
+    const hasSmall = await savePng(form.get("smallicon"), path.join(dir, "smallicon.png"), "Small icon");
+    const hasPreview = await savePng(form.get("preview"), path.join(dir, "preview.png"), "Preview");
 
     const textureLines = [];
-    for (const [field, key] of Object.entries(OPTIONAL_TEXTURES)) {
-      if (await savePng(one(field), path.join(dir, `${field}.png`), field)) {
-        textureLines.push(`${key}.image = ${field}.png`);
+    for (const key of OPTIONAL_TEXTURES) {
+      if (await savePng(form.get(key), path.join(dir, `${key}.png`), key)) {
+        textureLines.push(`${key}.image = ${key}.png`);
       }
     }
 
-    const colorLines = parseColors(body.colors);
-    const bgm = one("music") ? await buildMusic(one("music"), dir, body) : null;
-    const sfx = await buildSfx(files, dir);
+    const colorLines = parseColors(form.get("colors"));
+    const music = form.get("music");
+    const bgm = isFile(music) ? await buildMusic(music, dir, form) : null;
+    const sfx = await buildSfx(form, dir);
 
-    const title = cleanText(body.title, 64, "My Theme");
+    const title = cleanText(form.get("title"), 64, "My Theme");
     const rc = [
       "[info]",
       `shorttitle = ${title}`,
-      `longtitle = ${cleanText(body.description, 128, title)}`,
-      `publisher = ${cleanText(body.author, 64, "Anonymous")}`,
+      `longtitle = ${cleanText(form.get("description"), 128, title)}`,
+      `publisher = ${cleanText(form.get("author"), 64, "Anonymous")}`,
       "icon = icon.png",
       hasSmall ? "smallicon = smallicon.png" : "",
       "",
       "[frames]",
       "top.type = texture",
-      `top.frame = ${oneOf(body.topFrame, TOP_FRAMES, "single")}`,
+      `top.frame = ${oneOf(form.get("topFrame"), TOP_FRAMES, "single")}`,
       "bottom.type = texture",
-      `bottom.frame = ${oneOf(body.bottomFrame, BOTTOM_FRAMES, "single")}`,
+      `bottom.frame = ${oneOf(form.get("bottomFrame"), BOTTOM_FRAMES, "single")}`,
       "",
       "[textures]",
       "top.image = top.png",
@@ -234,7 +221,7 @@ async function buildTheme(req) {
       ...colorLines,
       "",
       "[flags]",
-      body.hideGameText === "true" ? "gametext.hidden = 1" : "",
+      form.get("hideGameText") === "true" ? "gametext.hidden = 1" : "",
       "",
       "[audio]",
       bgm ? "bgm = bgm.bcstm" : "",
@@ -266,37 +253,3 @@ async function buildTheme(req) {
     await fs.rm(dir, { recursive: true, force: true });
   }
 }
-
-const app = express();
-app.use(express.static(path.join(__dirname, "public")));
-
-app.get("/api/limits", (_req, res) => {
-  res.json({ sampleRate: SAMPLE_RATE, maxBgmBytes: MAX_BGM_BYTES, maxSfxChunk: MAX_SFX_CHUNK, maxSfxSeconds: MAX_SFX_SECONDS, maxUpload: MAX_UPLOAD });
-});
-
-app.post("/api/build", fields, async (req, res) => {
-  try {
-    const { zip, title } = await buildTheme(req);
-    const filename = `${title.replace(/[^\w\- ]+/g, "").trim() || "theme"}.zip`;
-    res.set({
-      "Content-Type": "application/zip",
-      "Content-Disposition": `attachment; filename="${filename}"`,
-      "X-Theme-Filename": encodeURIComponent(filename),
-    });
-    res.send(zip);
-  } catch (err) {
-    if (err instanceof UserError) return res.status(400).json({ error: err.message });
-    console.error(err);
-    res.status(500).json({ error: "Theme build failed on the server. Check the server log." });
-  }
-});
-
-// Multer errors (file too large, etc.)
-app.use((err, _req, res, _next) => {
-  const status = err instanceof multer.MulterError ? 413 : 500;
-  res.status(status).json({ error: err.message || "Upload failed" });
-});
-
-app.listen(PORT, () => {
-  console.log(`3DS Theme Studio running at http://localhost:${PORT}`);
-});

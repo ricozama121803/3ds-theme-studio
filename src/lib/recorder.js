@@ -6,7 +6,8 @@ const SILENCE = 0.003;          // ≈ -50 dBFS
 const PAD_SECONDS = 0.05;
 export const MAX_RECORD_SECONDS = 600;
 
-export const canRecordTabs = !!navigator.mediaDevices?.getDisplayMedia && "MediaRecorder" in window;
+export const canRecordTabs = () =>
+  typeof window !== "undefined" && !!navigator.mediaDevices?.getDisplayMedia && "MediaRecorder" in window;
 
 function pickMime() {
   for (const t of ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus"]) {

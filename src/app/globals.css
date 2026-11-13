@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --color-accent-400: #ff6b7d;
+  --color-accent-500: #ff4d63;
+  --color-accent-600: #e2384d;
+}
+
+/* Used by Aceternity components */
+@utility shadow-input {
+  box-shadow: 0px 2px 3px -1px rgba(0, 0, 0, 0.1), 0px 1px 0px 0px rgba(25, 28, 33, 0.02),
+    0px 0px 0px 1px rgba(25, 28, 33, 0.08);
+}
+
+html { color-scheme: dark; }
+body { background: #0a0a0a; }
+
+input[type="range"] { accent-color: var(--color-accent-500); }
+input[type="checkbox"] { accent-color: var(--color-accent-500); }
+input[type="color"] {
+  appearance: none; -webkit-appearance: none;
+  width: 2.25rem; height: 1.75rem; padding: 0; border: 1px solid #404040; border-radius: 0.4rem;
+  background: none; cursor: pointer;
+}
+input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
+input[type="color"]::-webkit-color-swatch { border: none; border-radius: 0.25rem; }
+input[type="color"]::-moz-color-swatch { border: none; border-radius: 0.25rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
