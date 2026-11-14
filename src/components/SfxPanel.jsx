@@ -86,7 +86,7 @@ function SfxRow({ slot, label, value, setSfx }) {
   return (
     <div className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 rounded-lg border border-neutral-800 px-3 py-2 sm:grid-cols-[10rem_1fr_auto]">
       <span className="text-sm font-medium text-neutral-200">{label}</span>
-      <span className="col-span-2 row-start-2 truncate text-xs text-neutral-500 sm:col-span-1 sm:row-start-1">
+      <span className="col-span-2 row-start-2 truncate text-xs text-neutral-500 sm:col-span-1 sm:col-start-2 sm:row-start-1">
         {value
           ? `${value.file.name} · ${Math.min(value.duration, MAX_SFX_SECONDS).toFixed(1)} s${value.duration > MAX_SFX_SECONDS ? " (trimmed)" : ""}`
           : "None"}

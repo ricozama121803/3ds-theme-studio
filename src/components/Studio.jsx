@@ -10,6 +10,8 @@ import ColorsPanel, { initialColorState, resolveColor } from "@/components/Color
 import SfxPanel, { sfxOverLimit } from "@/components/SfxPanel";
 import BuildPanel from "@/components/BuildPanel";
 import Footer from "@/components/Footer";
+import Mascot from "@/components/Mascot";
+import StepNav, { useActiveStep } from "@/components/StepNav";
 import { coverCrop, renderCrop } from "@/lib/crop";
 import { to565Canvas, padCanvas, makeCanvas, extractPalette } from "@/lib/imaging";
 import { toConfig, paletteFromImages } from "@/lib/colors";
@@ -30,6 +32,12 @@ const TEXTURE_PAIRS = [["filelarge", "filesmall"], ["folderopen", "folderclose"]
 
 const TOP_FRAMES = [["single", "Still"], ["slowscroll", "Scrolls slowly"], ["fastscroll", "Scrolls quickly"]];
 const BOTTOM_FRAMES = [["single", "Still"], ["pagescroll", "Moves page by page"], ["slowscroll", "Scrolls slowly"], ["fastscroll", "Scrolls quickly"], ["bouncescroll", "Bounces"]];
+
+const STEPS = [
+  ["details", "Details"], ["top", "Top screen"], ["bottom", "Bottom screen"], ["icon", "Icon"], ["music", "Music"],
+  ["colors", "Tiles & colours"], ["sfx", "Sound effects"], ["textures", "Textures"], ["build", "Build & install"],
+];
+const STEP_IDS = STEPS.map(([id]) => `step-${id}`);
 
 const toBlob = (canvas) => new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
 
@@ -140,6 +148,13 @@ export default function Studio() {
   ];
   const canBuild = !!(top?.img && bottom?.img && icon?.img) && !musicTooLong && !sfxTooBig;
 
+  const [activeStep, setActiveStep] = useActiveStep(STEP_IDS);
+  const stepDone = {
+    details: !!title.trim(), top: !!top?.img, bottom: !!bottom?.img, icon: !!icon?.img,
+    music: !!music && !musicTooLong, colors: colorCount > 0, sfx: sfxCount > 0 && !sfxTooBig, textures: texCount > 0, build: !!built,
+  };
+  const navSteps = STEPS.map(([id, label], i) => ({ id: STEP_IDS[i], n: i + 1, label, done: stepDone[id] }));
+
   const build = async () => {
     setBuilding(true);
     setBuilt(null);
@@ -199,7 +214,8 @@ export default function Studio() {
       <header className="relative overflow-hidden border-b border-neutral-900">
         <Spotlight />
         <BackgroundBeams />
-        <div className="relative z-10 mx-auto max-w-6xl px-4 pb-14 pt-16 sm:px-6 sm:pt-20">
+        <div className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 pb-14 pt-16 sm:px-6 sm:pt-20">
+          <div>
           <h1 className="bg-gradient-to-b from-white to-neutral-400 bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-6xl">
             3DS Theme Studio
           </h1>
@@ -207,12 +223,18 @@ export default function Studio() {
             Make a custom Home Menu theme from your own pictures, colours, music and sounds. It previews pixel-exact,
             then installs straight onto your SD card.
           </p>
+          </div>
+          <Mascot className="h-24 w-24 shrink-0 sm:h-36 sm:w-36 lg:mr-16 lg:h-44 lg:w-44" />
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto grid max-w-6xl items-start gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_420px]">
-        <div className="order-2 flex flex-col gap-6 lg:order-1">
-          <StepCard n={1} title="Details">
+      <main className="relative z-10 mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)] items-start gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_420px] xl:grid-cols-[170px_minmax(0,1fr)_400px]">
+        <aside className="hidden self-stretch xl:block" aria-label="Step navigation">
+          <StepNav steps={navSteps} active={activeStep} setActive={setActiveStep} variant="rail" />
+        </aside>
+        <div className="order-2 flex flex-col gap-6 lg:order-1 xl:order-none">
+          <StepNav steps={navSteps} active={activeStep} setActive={setActiveStep} variant="bar" />
+          <StepCard id="step-details" n={1} title="Details">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Theme name" value={title} onChange={setTitle} placeholder="My Theme" id="title" />
               <Field label="Author" value={author} onChange={setAuthor} placeholder="Your name" id="author" />
@@ -222,14 +244,14 @@ export default function Studio() {
             </div>
           </StepCard>
 
-          <StepCard n={2} title="Top screen" aside={topFrame === "single" ? "400 × 240" : `${SCROLL_W} × 240 (scrolling)`}>
+          <StepCard id="step-top" n={2} title="Top screen" aside={topFrame === "single" ? "400 × 240" : `${SCROLL_W} × 240 (scrolling)`}>
             <FramePicker id="top-frame" value={topFrame} onChange={setTopFrame} options={TOP_FRAMES} />
             <div data-slot="top">
               <Cropper crop={top} onCrop={setTop} w={topW} h={SCREEN_H} editScale={topFrame === "single" ? 2 : 1} uploadTitle="Upload a top screen image" />
             </div>
           </StepCard>
 
-          <StepCard n={3} title="Bottom screen" aside={bottomFrame === "single" ? "320 × 240" : `${SCROLL_W} × 240 (scrolling)`}>
+          <StepCard id="step-bottom" n={3} title="Bottom screen" aside={bottomFrame === "single" ? "320 × 240" : `${SCROLL_W} × 240 (scrolling)`}>
             <FramePicker id="bottom-frame" value={bottomFrame} onChange={setBottomFrame} options={BOTTOM_FRAMES} />
             <div data-slot="bottom">
               <Cropper crop={bottom} onCrop={setBottom} w={bottomW} h={SCREEN_H} editScale={bottomFrame === "single" ? 2 : 1} uploadTitle="Upload a bottom screen image" />
@@ -237,29 +259,29 @@ export default function Studio() {
             <Hint className="mt-3">Your app icons sit on top of this screen. Keep “Show Home Menu” on in the preview to check.</Hint>
           </StepCard>
 
-          <StepCard n={4} title="Theme icon" aside="48 × 48">
+          <StepCard id="step-icon" n={4} title="Theme icon" aside="48 × 48">
             <Hint className="mb-4">Shown in theme managers. It starts as a crop of your top screen; upload a different image if you like.</Hint>
             <div data-slot="icon">
               <Cropper crop={icon} onCrop={setIcon} w={48} h={48} editScale={4} pixelated compact uploadTitle="Upload an icon" />
             </div>
           </StepCard>
 
-          <StepCard n={5} title={<>Music <span className="text-sm font-normal text-neutral-500">(optional)</span></>}>
+          <StepCard id="step-music" n={5} title={<>Music <span className="text-sm font-normal text-neutral-500">(optional)</span></>}>
             <MusicPanel music={music} setMusic={setMusic} />
           </StepCard>
 
-          <StepCard n={6} title={<>Tiles &amp; colours <span className="text-sm font-normal text-neutral-500">(optional)</span></>}>
+          <StepCard id="step-colors" n={6} title={<>Tiles &amp; colours <span className="text-sm font-normal text-neutral-500">(optional)</span></>}>
             <ColorsPanel
               state={colors} setState={setColors} hideGameText={hideGameText} setHideGameText={setHideGameText}
               onAuto={autoColors} canAuto={!!(top?.img || bottom?.img)}
             />
           </StepCard>
 
-          <StepCard n={7} title={<>Sound effects <span className="text-sm font-normal text-neutral-500">(optional)</span></>}>
+          <StepCard id="step-sfx" n={7} title={<>Sound effects <span className="text-sm font-normal text-neutral-500">(optional)</span></>}>
             <SfxPanel sfx={sfx} setSfx={setSfx} />
           </StepCard>
 
-          <StepCard n={8} title="Tile & folder textures" badge="Experimental">
+          <StepCard id="step-textures" n={8} title="Tile & folder textures" badge="Experimental">
             <Hint className="mb-4">
               Use your own pictures for the app tiles and folder icons (full 24-bit colour). How each one is laid out on the console
               isn’t well documented, so check the result on your 3DS. Tiles and folders work in pairs: if you only set one, the other
@@ -280,12 +302,12 @@ export default function Studio() {
             </div>
           </StepCard>
 
-          <StepCard n={9} title="Build & install">
+          <StepCard id="step-build" n={9} title="Build & install">
             <BuildPanel checklist={checklist} canBuild={canBuild} building={building} status={status} built={built} onBuild={build} />
           </StepCard>
         </div>
 
-        <aside className="order-1 lg:sticky lg:top-6 lg:order-2" aria-label="Live preview">
+        <aside className="order-1 lg:sticky lg:top-6 lg:order-2 xl:order-none" aria-label="Live preview">
           <Preview
             outputs={outputs} topFrame={topFrame} bottomFrame={bottomFrame} overlayVars={overlayVars}
             hideGameText={hideGameText} title={title.trim()} author={author.trim()}

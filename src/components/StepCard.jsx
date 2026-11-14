@@ -2,9 +2,9 @@
 import { GlowingEffect } from "@/components/ui/glowing-effect";
 import { cn } from "@/lib/utils";
 
-export default function StepCard({ n, title, aside, badge, children, className }) {
+export default function StepCard({ id, n, title, aside, badge, children, className }) {
   return (
-    <section className={cn("relative rounded-2xl border border-neutral-800 p-1.5", className)}>
+    <section id={id} className={cn("relative scroll-mt-20 rounded-2xl border border-neutral-800 p-1.5 xl:scroll-mt-6", className)}>
       <GlowingEffect spread={40} glow disabled={false} proximity={64} inactiveZone={0.01} borderWidth={2} />
       <div className="relative rounded-xl bg-neutral-900/70 p-5 backdrop-blur-sm sm:p-6">
         <h2 className="mb-4 flex items-center gap-3 text-base font-semibold text-neutral-100">

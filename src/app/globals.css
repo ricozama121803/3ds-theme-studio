@@ -33,3 +33,21 @@ input[type="color"]::-moz-color-swatch { border: none; border-radius: 0.25rem; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* Mascot */
+@keyframes mascot-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes mascot-shadow { 0%, 100% { transform: scaleX(1); opacity: 0.6; } 50% { transform: scaleX(0.8); opacity: 0.35; } }
+@keyframes mascot-blink { 0%, 90%, 100% { transform: scaleY(1); } 93% { transform: scaleY(0.08); } 96% { transform: scaleY(1); } }
+@keyframes mascot-lid { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-3deg); } }
+.mascot-body { animation: mascot-float 3.2s ease-in-out infinite; }
+.mascot-shadow { animation: mascot-shadow 3.2s ease-in-out infinite; }
+.mascot-eye { animation: mascot-blink 4.5s infinite; }
+.mascot-eye:nth-of-type(2) { animation-delay: 0.04s; }
+.mascot:hover .mascot-lid { animation: mascot-lid 0.6s ease-in-out 2; transform-origin: 16px 15px; }
+@media (prefers-reduced-motion: reduce) {
+  .mascot-body, .mascot-shadow, .mascot-eye, .mascot:hover .mascot-lid { animation: none !important; }
+}
+
+/* Fake 3DS controls give a little press feedback */
+.fake-btn { transition: transform 80ms, filter 80ms; cursor: pointer; }
+.fake-btn:active { transform: translateY(1px) scale(0.94); filter: brightness(0.85); }
