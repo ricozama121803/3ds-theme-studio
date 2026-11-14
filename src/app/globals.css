@@ -51,3 +51,9 @@ input[type="color"]::-moz-color-swatch { border: none; border-radius: 0.25rem; }
 /* Fake 3DS controls give a little press feedback */
 .fake-btn { transition: transform 80ms, filter 80ms; cursor: pointer; }
 .fake-btn:active { transform: translateY(1px) scale(0.94); filter: brightness(0.85); }
+
+/* Preview: opening demo */
+@keyframes hm-pop { from { transform: scale(0.2); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes hm-page-next { from { transform: translateX(45%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes hm-page-prev { from { transform: translateX(-45%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes hm-bubble { from { transform: translateY(6px); opacity: 0; } to { transform: none; opacity: 1; } }

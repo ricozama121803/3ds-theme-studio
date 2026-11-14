@@ -1,9 +1,11 @@
 "use client";
 import { useEffect, useRef } from "react";
-import { IconRefresh, IconPhotoEdit, IconTrash } from "@tabler/icons-react";
+import { IconRefresh, IconPhotoEdit, IconRotate, IconRotateClockwise, IconTrash } from "@tabler/icons-react";
+import { rotate90 } from "@/lib/imaging";
 import { FileUpload } from "@/components/ui/file-upload";
 import { cn } from "@/lib/utils";
 import { clampCrop, coverCrop, drawCrop, scaleFor, sliderFor } from "@/lib/crop";
+import ImageSearch, { fetchImageUrl } from "@/components/ImageSearch";
 
 const IMAGE_ACCEPT = { "image/*": [] };
 
@@ -13,7 +15,7 @@ const IMAGE_ACCEPT = { "image/*": [] };
  */
 export default function Cropper({
   crop, onCrop, w, h, editScale = 2, optional = false, compact = false, pixelated = false,
-  uploadTitle = "Upload an image", showQuality = true,
+  uploadTitle = "Upload an image", showQuality = true, webSearch = false, clearable = false,
 }) {
   const canvasRef = useRef(null);
   const replaceRef = useRef(null);
@@ -26,9 +28,28 @@ export default function Cropper({
       const img = await createImageBitmap(file);
       onCrop(coverCrop(img, w, h, { bg: crop?.bg, userImage: true }));
     } catch {
-      alert(`Couldn't open "${file.name}" as an image.`);
+      alert(file.name ? `Couldn't open "${file.name}" as an image.` : "Couldn't open that as an image.");
     }
   };
+
+  // Turn the picture itself, then fit it to the frame again.
+  const rotate = async (dir) => {
+    const cur = latest.current;
+    if (!cur?.img) return;
+    onCrop(coverCrop(await rotate90(cur.img, dir), w, h, cur));
+  };
+
+  // A picture dragged in from another tab arrives as a link, not a file.
+  const onDropLink = (e) => {
+    if (e.dataTransfer?.files?.length) return;
+    const url = e.dataTransfer?.getData("text/uri-list")?.split("\n").find((l) => l && !l.startsWith("#"))
+      || e.dataTransfer?.getData("text/plain");
+    if (!url || !/^(https?:|data:image\/)/i.test(url.trim())) return;
+    e.preventDefault();
+    fetchImageUrl(url).then(load, (err) => alert(err.message));
+  };
+
+  const search = webSearch && <ImageSearch onImage={load} />;
 
   // Redraw the editor canvas.
   useEffect(() => {
@@ -85,13 +106,16 @@ export default function Cropper({
 
   if (!crop?.img) {
     return (
-      <FileUpload
-        accept={IMAGE_ACCEPT}
-        compact={compact}
-        title={uploadTitle}
-        subtitle="Drag & drop an image here, or click to browse"
-        onChange={(files) => load(files[0])}
-      />
+      <div className="space-y-3" onDragOver={(e) => e.preventDefault()} onDrop={onDropLink}>
+        <FileUpload
+          accept={IMAGE_ACCEPT}
+          compact={compact}
+          title={uploadTitle}
+          subtitle="Drag & drop an image here, or click to browse"
+          onChange={(files) => load(files[0])}
+        />
+        {search}
+      </div>
     );
   }
 
@@ -124,9 +148,12 @@ export default function Cropper({
         </label>
         <span className="flex-1" />
         <div className="flex gap-1.5">
+          <IconButton label="Rotate left" onClick={() => rotate(-1)}><IconRotate size={16} /></IconButton>
+          <IconButton label="Rotate right" onClick={() => rotate(1)}><IconRotateClockwise size={16} /></IconButton>
           <IconButton label="Reset" onClick={() => onCrop(coverCrop(crop.img, w, h, crop))}><IconRefresh size={16} /></IconButton>
           <IconButton label="Replace" onClick={() => replaceRef.current?.click()}><IconPhotoEdit size={16} /></IconButton>
-          {optional && <IconButton label="Remove" onClick={() => onCrop(null)}><IconTrash size={16} /></IconButton>}
+          {clearable && <IconButton label="Remove image" onClick={() => onCrop(null)}><IconTrash size={16} /> Remove</IconButton>}
+          {optional && !clearable && <IconButton label="Remove" onClick={() => onCrop(null)}><IconTrash size={16} /></IconButton>}
         </div>
         <input
           ref={replaceRef} type="file" accept="image/*" hidden
@@ -139,6 +166,12 @@ export default function Cropper({
             ? `⚠ Enlarged ${crop.scale.toFixed(1)}×, so it may look soft. Use a bigger image or zoom out.`
             : `✓ Sharp: ${crop.img.width}×${crop.img.height} source, scaled down ${(1 / crop.scale).toFixed(1)}× with high-quality filtering. Drag to reposition.`}
         </p>
+      )}
+      {search && (
+        <details className="group">
+          <summary className="cursor-pointer select-none text-sm text-neutral-400 hover:text-neutral-200">Find a different picture on Google Images</summary>
+          <div className="mt-2">{search}</div>
+        </details>
       )}
     </div>
   );

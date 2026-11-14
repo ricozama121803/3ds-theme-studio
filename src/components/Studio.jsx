@@ -30,8 +30,8 @@ const TEXTURES = {
 // solid black on the console, so the missing one reuses the same picture.
 const TEXTURE_PAIRS = [["filelarge", "filesmall"], ["folderopen", "folderclose"]];
 
-const TOP_FRAMES = [["single", "Still"], ["slowscroll", "Scrolls slowly"], ["fastscroll", "Scrolls quickly"]];
-const BOTTOM_FRAMES = [["single", "Still"], ["pagescroll", "Moves page by page"], ["slowscroll", "Scrolls slowly"], ["fastscroll", "Scrolls quickly"], ["bouncescroll", "Bounces"]];
+const TOP_FRAMES = [["single", "Still"], ["slowscroll", "Pans slowly as you scroll"], ["fastscroll", "Pans quickly as you scroll"]];
+const BOTTOM_FRAMES = [["single", "Still"], ["pagescroll", "Moves page by page as you scroll"], ["slowscroll", "Pans slowly as you scroll"], ["fastscroll", "Pans quickly as you scroll"], ["bouncescroll", "Bounces as you scroll"]];
 
 const STEPS = [
   ["details", "Details"], ["top", "Top screen"], ["bottom", "Bottom screen"], ["icon", "Icon"], ["music", "Music"],
@@ -70,8 +70,9 @@ export default function Studio() {
   useEffect(() => { setBottom((c) => (c?.img ? coverCrop(c.img, bottomW, SCREEN_H, c) : c)); }, [bottomW]);
 
   // The icon follows the top image until the user picks their own.
+  // Clearing the top clears an icon that was only following it.
   useEffect(() => {
-    if (!top?.img) return;
+    if (!top?.img) return setIcon((c) => (c?.userImage ? c : null));
     setIcon((c) => (c?.userImage || c?.img === top.img ? c : coverCrop(top.img, 48, 48)));
   }, [top?.img]);
 
@@ -223,6 +224,16 @@ export default function Studio() {
             Make a custom Home Menu theme from your own pictures, colours, music and sounds. It previews pixel-exact,
             then installs straight onto your SD card.
           </p>
+          <p className="mt-4 text-sm text-neutral-500">
+            Free, no sign-up needed. Like it?{" "}
+            <a
+              href="https://github.com/ricozama121803/3ds-theme-studio" target="_blank" rel="noopener noreferrer"
+              className="text-neutral-300 underline decoration-neutral-600 underline-offset-4 transition hover:text-white hover:decoration-amber-400"
+            >
+              Give it a star on GitHub
+            </a>
+            .
+          </p>
           </div>
           <Mascot className="h-24 w-24 shrink-0 sm:h-36 sm:w-36 lg:mr-16 lg:h-44 lg:w-44" />
         </div>
@@ -247,15 +258,17 @@ export default function Studio() {
           <StepCard id="step-top" n={2} title="Top screen" aside={topFrame === "single" ? "400 × 240" : `${SCROLL_W} × 240 (scrolling)`}>
             <FramePicker id="top-frame" value={topFrame} onChange={setTopFrame} options={TOP_FRAMES} />
             <div data-slot="top">
-              <Cropper crop={top} onCrop={setTop} w={topW} h={SCREEN_H} editScale={topFrame === "single" ? 2 : 1} uploadTitle="Upload a top screen image" />
+              <Cropper crop={top} onCrop={setTop} w={topW} h={SCREEN_H} editScale={topFrame === "single" ? 2 : 1} clearable webSearch uploadTitle="Upload a top screen image" />
             </div>
+            {topFrame !== "single" && <ScrollHint />}
           </StepCard>
 
           <StepCard id="step-bottom" n={3} title="Bottom screen" aside={bottomFrame === "single" ? "320 × 240" : `${SCROLL_W} × 240 (scrolling)`}>
             <FramePicker id="bottom-frame" value={bottomFrame} onChange={setBottomFrame} options={BOTTOM_FRAMES} />
             <div data-slot="bottom">
-              <Cropper crop={bottom} onCrop={setBottom} w={bottomW} h={SCREEN_H} editScale={bottomFrame === "single" ? 2 : 1} uploadTitle="Upload a bottom screen image" />
+              <Cropper crop={bottom} onCrop={setBottom} w={bottomW} h={SCREEN_H} editScale={bottomFrame === "single" ? 2 : 1} clearable uploadTitle="Upload a bottom screen image" />
             </div>
+            {bottomFrame !== "single" && <ScrollHint />}
             <Hint className="mt-3">Your app icons sit on top of this screen. Keep “Show Home Menu” on in the preview to check.</Hint>
           </StepCard>
 
@@ -312,6 +325,7 @@ export default function Studio() {
             outputs={outputs} topFrame={topFrame} bottomFrame={bottomFrame} overlayVars={overlayVars}
             hideGameText={hideGameText} title={title.trim()} author={author.trim()}
             showHomeMenu={showHomeMenu} setShowHomeMenu={setShowHomeMenu} dither={dither} setDither={setDither}
+            music={music} sfx={sfx}
           />
         </aside>
       </main>
@@ -330,6 +344,15 @@ function Field({ label, hint, value, onChange, placeholder, maxLength = 64, id }
         className="rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2.5 font-normal text-neutral-100 outline-none transition placeholder:text-neutral-600 focus:border-accent-500"
       />
     </label>
+  );
+}
+
+function ScrollHint() {
+  return (
+    <Hint className="mt-3">
+      This doesn’t move by itself. On the 3DS the picture pans as you swipe sideways through your app grid, so you’ll only see it
+      move once your apps fill more than one screen. (The preview plays it automatically so you can see the whole picture.)
+    </Hint>
   );
 }
 

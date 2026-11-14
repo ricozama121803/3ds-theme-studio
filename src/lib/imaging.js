@@ -1,5 +1,15 @@
 // Image quality helpers: mipmapped downscaling and RGB565 quantization.
 
+/** A copy of an image turned 90° clockwise (dir = 1) or anticlockwise (dir = -1). */
+export async function rotate90(img, dir) {
+  const c = makeCanvas(img.height, img.width);
+  const ctx = c.getContext("2d");
+  ctx.translate(c.width / 2, c.height / 2);
+  ctx.rotate((dir * Math.PI) / 2);
+  ctx.drawImage(img, -img.width / 2, -img.height / 2);
+  return createImageBitmap(c);
+}
+
 /** Canvas factory that works with or without OffscreenCanvas. */
 export function makeCanvas(w, h) {
   const c = document.createElement("canvas");

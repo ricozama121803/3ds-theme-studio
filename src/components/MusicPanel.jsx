@@ -1,6 +1,9 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { IconPlayerPlay, IconPlayerRecordFilled, IconPlayerStopFilled, IconTrash } from "@tabler/icons-react";
+import {
+  IconBrandApple, IconBrandSoundcloud, IconBrandSpotify, IconBrandYoutube, IconMusic,
+  IconPlayerPlay, IconPlayerRecordFilled, IconPlayerStopFilled, IconTrash,
+} from "@tabler/icons-react";
 import { FileUpload } from "@/components/ui/file-upload";
 import { IconButton } from "@/components/Cropper";
 import { Hint } from "@/components/StepCard";
@@ -9,6 +12,13 @@ import { canRecordTabs, startTabRecording, MAX_RECORD_SECONDS } from "@/lib/reco
 import { MAX_BGM_BYTES, bgmMaxSeconds, estimateBgmBytes, clipRange } from "@/lib/limits";
 
 const AUDIO_ACCEPT = { "audio/*": [], "video/*": [] };
+const MUSIC_SITES = [
+  { name: "YouTube", url: "https://www.youtube.com", Icon: IconBrandYoutube, hover: "hover:text-[#ff0033]" },
+  { name: "YouTube Music", url: "https://music.youtube.com", Icon: IconMusic, hover: "hover:text-[#ff0033]" },
+  { name: "Spotify", url: "https://open.spotify.com", Icon: IconBrandSpotify, hover: "hover:text-[#1ed760]" },
+  { name: "Apple Music", url: "https://music.apple.com", Icon: IconBrandApple, hover: "hover:text-[#fa2d48]" },
+  { name: "SoundCloud", url: "https://soundcloud.com", Icon: IconBrandSoundcloud, hover: "hover:text-[#ff5500]" },
+];
 const tenth = (s) => Math.floor(s * 10) / 10;
 const fmtTime = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 const mb = (b) => (b / 1048576).toFixed(2);
@@ -126,6 +136,17 @@ export default function MusicPanel({ music, setMusic }) {
           <IconPlayerRecordFilled size={16} className="text-red-500" />
           {processing ? "Processing recording…" : "Record from another tab"}
         </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm text-neutral-500">Open in a new tab:</span>
+          {MUSIC_SITES.map(({ name, url, Icon, hover }) => (
+            <a
+              key={name} href={url} target="_blank" rel="noopener noreferrer" title={`Open ${name}`} aria-label={`Open ${name} in a new tab`}
+              className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-800 bg-neutral-900 text-neutral-400 transition hover:border-neutral-600 ${hover}`}
+            >
+              <Icon size={18} />
+            </a>
+          ))}
+        </div>
         <Hint>
           {canRecord
             ? "Grabs whatever is playing in another Chrome tab (YouTube, Spotify Web, SoundCloud…). Turn on “Also share tab audio” in the picker. Silence at the start and end is trimmed automatically."
