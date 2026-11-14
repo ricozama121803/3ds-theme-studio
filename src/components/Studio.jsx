@@ -200,9 +200,6 @@ export default function Studio() {
         <Spotlight />
         <BackgroundBeams />
         <div className="relative z-10 mx-auto max-w-6xl px-4 pb-14 pt-16 sm:px-6 sm:pt-20">
-          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900/60 px-3 py-1 text-xs text-neutral-400">
-            <span className="h-2 w-2 rounded-full bg-accent-500" /> Nintendo 3DS Home Menu themes
-          </div>
           <h1 className="bg-gradient-to-b from-white to-neutral-400 bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-6xl">
             3DS Theme Studio
           </h1>

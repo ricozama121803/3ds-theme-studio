@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { IconCheck, IconCircle, IconMinus, IconDeviceSdCard, IconDownload, IconHammer, IconLoader2 } from "@tabler/icons-react";
+import { IconCheck, IconCircle, IconMinus, IconDeviceSdCard, IconDownload, IconHammer, IconLoader2, IconInfoCircle } from "@tabler/icons-react";
 import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
 import { cn } from "@/lib/utils";
 
@@ -56,7 +56,7 @@ export default function BuildPanel({ checklist, canBuild, building, status, buil
         if (!themes) {
           const looksLikeSd = (await childDir(picked, "Nintendo 3DS")) || (await childDir(picked, "luma")) || (await childDir(picked, "3ds"));
           const ok = looksLikeSd || confirm(
-            `"${picked.name}" doesn't look like a 3DS SD card (no "Nintendo 3DS" or "luma" folder).\n\nCreate a Themes folder here anyway?`,
+            `"${picked.name}" doesn't look like a 3DS SD card (no "Nintendo 3DS" or "luma" folder).\n\nMake sure your 3DS's SD/microSD card is plugged into this computer and pick its main folder.\n\nCreate a Themes folder here anyway?`,
           );
           if (!ok) return;
           themes = await picked.getDirectoryHandle("Themes", { create: true });
@@ -84,6 +84,15 @@ export default function BuildPanel({ checklist, canBuild, building, status, buil
           </li>
         ))}
       </ul>
+
+      <div className="flex gap-3 rounded-xl border border-sky-500/30 bg-sky-500/5 p-4 text-sm text-neutral-300">
+        <IconInfoCircle size={20} className="mt-0.5 shrink-0 text-sky-400" />
+        <p>
+          <strong className="text-neutral-100">To install the theme, your 3DS’s SD or microSD card must be plugged into this computer.</strong>{" "}
+          Power off the 3DS, take the card out, and connect it with your laptop’s SD slot or a USB card reader (microSD cards
+          may need an SD adapter). Then use <strong className="text-neutral-100">Save to SD card</strong> below.
+        </p>
+      </div>
 
       <HoverBorderGradient
         as="button"
@@ -121,13 +130,14 @@ export default function BuildPanel({ checklist, canBuild, building, status, buil
           </div>
           {(sdStatus.text || !canPick) && (
             <p id="sd-status" role="status" className={cn("text-sm", sdStatus.kind === "error" ? "text-red-400" : sdStatus.kind === "ok" ? "text-emerald-400" : "text-neutral-400")}>
-              {sdStatus.text || "Saving straight to the SD card needs Chrome or Edge. Download the zip and copy it into the card’s /Themes/ folder."}
+              {sdStatus.text || "Saving straight to the SD card needs Chrome or Edge. Download the zip, then copy it into the /Themes/ folder on your 3DS’s SD card while it’s plugged into this computer."}
             </p>
           )}
           <details open className="border-t border-neutral-800 pt-4 text-sm">
             <summary className="cursor-pointer font-semibold text-neutral-200">Applying it on your 3DS</summary>
             <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-neutral-400">
-              <li>Put the SD card in your computer and click <strong className="text-neutral-200">Save to SD card</strong>. Pick the card’s main folder and the theme goes into <code className="rounded bg-neutral-800 px-1">/Themes/</code>.</li>
+              <li>Power off your 3DS, remove its SD/microSD card and <strong className="text-neutral-200">plug it into this computer</strong> (SD slot or USB card reader). Click <strong className="text-neutral-200">Save to SD card</strong> and pick the card’s main folder; the theme goes into <code className="rounded bg-neutral-800 px-1">/Themes/</code>.</li>
+              <li>Eject the card safely from your computer before unplugging it.</li>
               <li>Put the card back in the 3DS and open <strong className="text-neutral-200">Anemone3DS</strong> (requires custom firmware).</li>
               <li>Select your theme and apply it <strong className="text-neutral-200">with BGM</strong> if it has music.</li>
               <li>On the Home Menu, open Theme Settings and make sure theme shuffle is off.</li>

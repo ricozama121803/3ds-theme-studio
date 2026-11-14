@@ -1,22 +1,12 @@
 "use client";
 // Aceternity UI "File Upload" (ui.aceternity.com), adapted for 3DS Theme Studio:
-// accept filters, custom labels, a compact size, unique input ids, and the
-// parent owns the file (no internal file list).
+// accept filters, custom labels, a compact size, unique input ids, no hover
+// animation, and the parent owns the file (no internal file list).
 import { cn } from "@/lib/utils";
 import React, { useId, useRef } from "react";
 import { motion } from "motion/react";
 import { IconUpload } from "@tabler/icons-react";
 import { useDropzone, type Accept } from "react-dropzone";
-
-const mainVariant = {
-  initial: { x: 0, y: 0 },
-  animate: { x: 20, y: -20, opacity: 0.9 },
-};
-
-const secondaryVariant = {
-  initial: { opacity: 0 },
-  animate: { opacity: 1 },
-};
 
 export const FileUpload = ({
   onChange,
@@ -53,9 +43,8 @@ export const FileUpload = ({
     <div className={cn("w-full", className)} {...getRootProps()}>
       <motion.div
         onClick={() => fileInputRef.current?.click()}
-        whileHover="animate"
         className={cn(
-          "group/file relative block w-full cursor-pointer overflow-hidden rounded-lg border border-neutral-800",
+          "relative block w-full cursor-pointer overflow-hidden rounded-lg border border-neutral-800 transition-colors hover:border-neutral-600",
           compact ? "p-4" : "p-8",
         )}
       >
@@ -82,11 +71,8 @@ export const FileUpload = ({
           )}
           <div className={cn("relative mx-auto w-full", compact ? "mt-3 max-w-[4rem]" : "mt-6 max-w-[8rem]")}>
             <motion.div
-              layoutId={`upload-${inputId}`}
-              variants={mainVariant}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
               className={cn(
-                "relative z-40 mx-auto flex w-full items-center justify-center rounded-md bg-neutral-900 group-hover/file:shadow-2xl",
+                "relative z-40 mx-auto flex w-full items-center justify-center rounded-md bg-neutral-900",
                 "shadow-[0px_10px_50px_rgba(0,0,0,0.1)]",
                 compact ? "h-14" : "h-28",
               )}
@@ -104,13 +90,6 @@ export const FileUpload = ({
                 <IconUpload className="h-4 w-4 text-neutral-300" />
               )}
             </motion.div>
-            <motion.div
-              variants={secondaryVariant}
-              className={cn(
-                "absolute inset-0 z-30 mx-auto flex w-full items-center justify-center rounded-md border border-dashed border-sky-400 bg-transparent opacity-0",
-                compact ? "h-14" : "h-28",
-              )}
-            />
           </div>
         </div>
       </motion.div>

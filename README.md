@@ -62,7 +62,9 @@ in `bin/` (not committed):
 
 ## Installing a theme on the 3DS
 
-1. Copy the zip into `/Themes/` on the SD card (or use **Save to SD card**).
+1. Power off the 3DS and plug its SD/microSD card into your computer (SD slot or
+   USB card reader). Then use **Save to SD card**, or copy the zip into `/Themes/`
+   on the card yourself. Eject the card safely before unplugging it.
 2. Open Anemone3DS (needs custom firmware), select the theme and apply it with BGM.
 3. In Home Menu → Theme Settings, make sure shuffle is off.
 
